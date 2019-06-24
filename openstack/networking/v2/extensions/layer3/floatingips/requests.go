@@ -180,3 +180,134 @@ func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	_, r.Err = c.Delete(resourceURL(c, id), nil)
 	return
 }
+
+type ListPortForwardingOptsBuilder interface {
+	ToFloatingIPPortForwardingListQuery() (string, error)
+}
+
+// ListOpts allows the filtering and sorting of paginated collections through
+// the API. Filtering is achieved by passing in struct field values that map to
+// the floating IP attributes you want to see returned. SortKey allows you to
+// sort by a particular network attribute. SortDir sets the direction, and is
+// either `asc' or `desc'. Marker and Limit are used for pagination.
+type ListPortForwardingOpts struct {
+	ID             string `q:"id"`
+	InternalPortID string `q:"internal_port_id"`
+	ExternalPort   string `q:"external_port"`
+	protocol       string `q:"protocol"`
+	SortKey        string `q:"sort_key"`
+	SortDir        string `q:"sort_dir"`
+	Fields         string `q:"fields"`
+}
+
+// ToNetworkListQuery formats a ListOpts into a query string.
+func (opts ListPortForwardingOpts) ToFloatingIPPortForwardingListQuery() (string, error) {
+	q, err := gophercloud.BuildQueryString(opts)
+	return q.String(), err
+}
+
+// List returns a Pager which allows you to iterate over a collection of
+// floating IP resources. It accepts a ListOpts struct, which allows you to
+// filter and sort the returned collection for greater efficiency.
+func ListPortForwardings(c *gophercloud.ServiceClient, opts ListPortForwardingOptsBuilder) pagination.Pager {
+	url := rootURL(c)
+	if opts != nil {
+		query, err := opts.ToFloatingIPPortForwardingListQuery()
+		if err != nil {
+			return pagination.Pager{Err: err}
+		}
+		url += query
+	}
+	return pagination.NewPager(c, url, func(r pagination.PageResult) pagination.Page {
+		return FloatingIPPortForwardingPage{pagination.LinkedPageBase{PageResult: r}}
+	})
+}
+
+type PortForwardingOpts struct {
+	InternalPortID   string `q:"internal_port_id"`
+	InternalIPAdress string `q:"internal_ip_address"`
+	InternalPort     string `q:"internal_port"`
+	ExternalPort     string `q:"external_port"`
+	Protocol         string `q:"protocol"`
+}
+
+type CreatePortForwardingOptsBuilder interface {
+	ToFloatingIPPortForwardingCreateMap() (map[string]interface{}, error)
+}
+
+func (opts CreateOpts) ToFloatingIPPortForwardingCreateMap() (map[string]interface{}, error) {
+	return gophercloud.BuildRequestBody(opts, "port_forwarding")
+}
+
+func CreatePortForwarding(c *gophercloud.ServiceClient, opts CreatePortForwardingOptsBuilder) (r CreateResult) {
+	b, err := opts.ToFloatingIPPortForwardingCreateMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+	_, r.Err = c.Post(rootURL(c), b, &r.Body, nil)
+	return
+}
+
+// Get retrieves a particular floating IP port forwarding resource based on its unique ID.
+func GetPortForwarding(c *gophercloud.ServiceClient, id string) (r GetResult) {
+	_, r.Err = c.Get(resourceURL(c, id), &r.Body, nil)
+	return
+}
+
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
+type UpdatePortForwardingOptsBuilder interface {
+	ToFloatingIPPortForwardingUpdateMap() (map[string]interface{}, error)
+}
+
+// UpdateOpts contains the values used when updating a floating IP resource. The
+// only value that can be updated is which internal port the floating IP is
+// linked to. To associate the floating IP with a new internal port, provide its
+// ID. To disassociate the floating IP from all ports, provide an empty string.
+type UpdatePortForwardingOpts struct {
+	InternalPortID    string `json:"internal_port_id,omitempty"`
+	InternalIPAddress string `json:"internal_ip_address"`
+	InternalPort      int    `json:"internal_port,omitempty"`
+	ExternalPort      int    `json:"external_port,omitempty"`
+	Protocol          string `json:"protocol"`
+}
+
+// ToFloatingIPUpdateMap allows UpdateOpts to satisfy the UpdateOptsBuilder
+// interface
+func (opts UpdatePortForwardingOpts) ToFloatingIPPortForwardingUpdateMap() (map[string]interface{}, error) {
+	b, err := gophercloud.BuildRequestBody(opts, "floatingip")
+	if err != nil {
+		return nil, err
+	}
+
+	if m := b["floatingip"].(map[string]interface{}); m["port_id"] == "" {
+		m["port_id"] = nil
+	}
+
+	return b, nil
+}
+
+// Update allows floating IP resources to be updated. Currently, the only way to
+// "update" a floating IP is to associate it with a new internal port, or
+// disassociated it from all ports. See UpdateOpts for instructions of how to
+// do this.
+func UpdatePortForwarding(c *gophercloud.ServiceClient, id string, opts UpdatePortForwardingOptsBuilder) (r UpdateResult) {
+	b, err := opts.ToFloatingIPPortForwardingUpdateMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+	_, r.Err = c.Put(resourceURL(c, id), b, &r.Body, &gophercloud.RequestOpts{
+		OkCodes: []int{200},
+	})
+	return
+}
+
+// Delete will permanently delete a particular floating IP resource. Please
+// ensure this is what you want - you can also disassociate the IP from existing
+// internal ports.
+func DeletePortForwarding(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
+	_, r.Err = c.Delete(resourceURL(c, id), nil)
+	return
+}

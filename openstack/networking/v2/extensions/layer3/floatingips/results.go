@@ -129,3 +129,78 @@ func ExtractFloatingIPs(r pagination.Page) ([]FloatingIP, error) {
 func ExtractFloatingIPsInto(r pagination.Page, v interface{}) error {
 	return r.(FloatingIPPage).Result.ExtractIntoSlicePtr(v, "floatingips")
 }
+
+type PortForwarding struct {
+	// ID is the unique identifier for the Port Forwarding instance.
+	ID string `json:"id"`
+
+	// The ID of the Neutron port associated to the floating IP port forwarding.
+	InternalPortID string `json:"internal_port_id"`
+
+	// FloatingNetworkID is the UUID of the external network where the floating
+	// IP is to be created.
+	ExternalPort string `json:"external_port"`
+
+	// FloatingIP is the address of the floating IP on the external network.
+	Protocol string `json:"protocol"`
+
+	// PortID is the UUID of the port on an internal network that is associated
+	// with the floating IP.
+	InternalPort string `json:"internal_port"`
+
+	// FixedIP is the specific IP address of the internal port which should be
+	// associated with the floating IP.
+	InternalIPAddress string `json:"internal_id_address"`
+}
+
+// Extract will extract a FloatingIP resource from a result.
+func (r commonResult) ExtractPortForwarding() (*PortForwarding, error) {
+	var s PortForwarding
+	err := r.ExtractInto(&s)
+	return &s, err
+}
+
+func (r commonResult) ExtractPortForwardingInto(v interface{}) error {
+	return r.Result.ExtractIntoStructPtr(v, "port_forwarding")
+}
+
+// FloatingIPPage is the page returned by a pager when traversing over a
+// collection of floating IPs.
+type PortForwardingPage struct {
+	pagination.LinkedPageBase
+}
+
+// NextPageURL is invoked when a paginated collection of floating IPs has
+// reached the end of a page and the pager seeks to traverse over a new one.
+// In order to do this, it needs to construct the next page's URL.
+func (r PortForwardingPage) NextPageURL() (string, error) {
+	var s struct {
+		Links []gophercloud.Link `json:"port_forwarding_links"`
+	}
+	err := r.ExtractInto(&s)
+	if err != nil {
+		return "", err
+	}
+	return gophercloud.ExtractNextURL(s.Links)
+}
+
+// IsEmpty checks whether a FloatingIPPage struct is empty.
+func (r PortForwardingPage) IsEmpty() (bool, error) {
+	is, err := ExtractPortForwardings(r)
+	return len(is) == 0, err
+}
+
+// ExtractFloatingIPs accepts a Page struct, specifically a FloatingIPPage
+// struct, and extracts the elements into a slice of FloatingIP structs. In
+// other words, a generic collection is mapped into a relevant slice.
+func ExtractPortForwardings(r pagination.Page) ([]PortForwarding, error) {
+	var s struct {
+		PortForwardings []PortForwarding `json:"port_forwardings"`
+	}
+	err := (r.(PortForwardingPage)).ExtractInto(&s)
+	return s.PortForwardings, err
+}
+
+func ExtractPortForwardingsInto(r pagination.Page, v interface{}) error {
+	return r.(PortForwardingPage).Result.ExtractIntoSlicePtr(v, "port_forwardings")
+}
