@@ -64,6 +64,36 @@ func CreateFloatingIPWithFixedIP(t *testing.T, client *gophercloud.ServiceClient
 	return floatingIP, err
 }
 
+func CreatePortForwarding(t *testing.T, client *gophercloud.ServiceClient, fipID string, portID string) (*floatingips.PortForwarding, error) {
+	t.Logf("Attempting to create Port forwarding for floating IP with ID: %s", fipID)
+
+	createOpts := &floatingips.CreatePortForwardingOpts{
+		Protocol:         "tcp",
+		InternalPort:     25,
+		ExternalPort:     2230,
+		InternalIPAdress: "10.0.0.11",
+		InternalPortID:   portID,
+	}
+
+	pf, err := floatingips.CreatePortForwarding(client, fipID, createOpts).ExtractPortForwarding()
+	if err != nil {
+		return pf, err
+	}
+
+	t.Logf("Created Port Forwarding.")
+
+	th.AssertEquals(t, pf.Protocol, "tcp")
+
+	return pf, err
+}
+
+func DeletePortForwarding(t *testing.T, client *gophercloud.ServiceClient, fipID string, pfID string) {
+	err := floatingips.DeletePortForwarding(client, fipID, pfID).ExtractErr()
+	if err != nil {
+		t.Fatalf("Failed to delete Port forwarding with ID %s for floating IP with ID %s", pfID, fipID)
+	}
+}
+
 // CreateExternalRouter creates a router on the external network. This requires
 // the OS_EXTGW_ID environment variable to be set. An error is returned if the
 // creation failed.

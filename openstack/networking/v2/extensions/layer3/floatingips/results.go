@@ -139,24 +139,24 @@ type PortForwarding struct {
 
 	// FloatingNetworkID is the UUID of the external network where the floating
 	// IP is to be created.
-	ExternalPort string `json:"external_port"`
+	ExternalPort int `json:"external_port"`
 
 	// FloatingIP is the address of the floating IP on the external network.
 	Protocol string `json:"protocol"`
 
 	// PortID is the UUID of the port on an internal network that is associated
 	// with the floating IP.
-	InternalPort string `json:"internal_port"`
+	InternalPort int `json:"internal_port"`
 
 	// FixedIP is the specific IP address of the internal port which should be
 	// associated with the floating IP.
-	InternalIPAddress string `json:"internal_id_address"`
+	InternalIPAddress string `json:"internal_ip_address"`
 }
 
 // Extract will extract a FloatingIP resource from a result.
 func (r commonResult) ExtractPortForwarding() (*PortForwarding, error) {
 	var s PortForwarding
-	err := r.ExtractInto(&s)
+	err := r.ExtractPortForwardingInto(&s)
 	return &s, err
 }
 

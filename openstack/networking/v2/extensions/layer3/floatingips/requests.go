@@ -191,13 +191,15 @@ type ListPortForwardingOptsBuilder interface {
 // sort by a particular network attribute. SortDir sets the direction, and is
 // either `asc' or `desc'. Marker and Limit are used for pagination.
 type ListPortForwardingOpts struct {
-	ID             string `q:"id"`
-	InternalPortID string `q:"internal_port_id"`
-	ExternalPort   string `q:"external_port"`
-	protocol       string `q:"protocol"`
-	SortKey        string `q:"sort_key"`
-	SortDir        string `q:"sort_dir"`
-	Fields         string `q:"fields"`
+	ID                string `q:"id"`
+	InternalPortID    string `q:"internal_port_id"`
+	ExternalPort      string `q:"external_port"`
+	InternalIPAddress string `q:"internal_ip_address"`
+	Protocol          string `q:"protocol"`
+	InternalPort      string `q:"internal_port"`
+	SortKey           string `q:"sort_key"`
+	SortDir           string `q:"sort_dir"`
+	Fields            string `q:"fields"`
 }
 
 // ToNetworkListQuery formats a ListOpts into a query string.
@@ -209,8 +211,8 @@ func (opts ListPortForwardingOpts) ToFloatingIPPortForwardingListQuery() (string
 // List returns a Pager which allows you to iterate over a collection of
 // floating IP resources. It accepts a ListOpts struct, which allows you to
 // filter and sort the returned collection for greater efficiency.
-func ListPortForwardings(c *gophercloud.ServiceClient, opts ListPortForwardingOptsBuilder) pagination.Pager {
-	url := rootURL(c)
+func ListPortForwardings(c *gophercloud.ServiceClient, opts ListPortForwardingOptsBuilder, id string) pagination.Pager {
+	url := portForwardingUrl(c, id)
 	if opts != nil {
 		query, err := opts.ToFloatingIPPortForwardingListQuery()
 		if err != nil {
@@ -219,39 +221,39 @@ func ListPortForwardings(c *gophercloud.ServiceClient, opts ListPortForwardingOp
 		url += query
 	}
 	return pagination.NewPager(c, url, func(r pagination.PageResult) pagination.Page {
-		return FloatingIPPortForwardingPage{pagination.LinkedPageBase{PageResult: r}}
+		return PortForwardingPage{pagination.LinkedPageBase{PageResult: r}}
 	})
 }
 
-type PortForwardingOpts struct {
-	InternalPortID   string `q:"internal_port_id"`
-	InternalIPAdress string `q:"internal_ip_address"`
-	InternalPort     string `q:"internal_port"`
-	ExternalPort     string `q:"external_port"`
-	Protocol         string `q:"protocol"`
+type CreatePortForwardingOpts struct {
+	InternalPortID   string `json:"internal_port_id"`
+	InternalIPAdress string `json:"internal_ip_address"`
+	InternalPort     int    `json:"internal_port"`
+	ExternalPort     int    `json:"external_port"`
+	Protocol         string `json:"protocol"`
 }
 
 type CreatePortForwardingOptsBuilder interface {
 	ToFloatingIPPortForwardingCreateMap() (map[string]interface{}, error)
 }
 
-func (opts CreateOpts) ToFloatingIPPortForwardingCreateMap() (map[string]interface{}, error) {
+func (opts CreatePortForwardingOpts) ToFloatingIPPortForwardingCreateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "port_forwarding")
 }
 
-func CreatePortForwarding(c *gophercloud.ServiceClient, opts CreatePortForwardingOptsBuilder) (r CreateResult) {
+func CreatePortForwarding(c *gophercloud.ServiceClient, floatingIpId string, opts CreatePortForwardingOptsBuilder) (r CreateResult) {
 	b, err := opts.ToFloatingIPPortForwardingCreateMap()
 	if err != nil {
 		r.Err = err
 		return
 	}
-	_, r.Err = c.Post(rootURL(c), b, &r.Body, nil)
+	_, r.Err = c.Post(portForwardingUrl(c, floatingIpId), b, &r.Body, nil)
 	return
 }
 
 // Get retrieves a particular floating IP port forwarding resource based on its unique ID.
-func GetPortForwarding(c *gophercloud.ServiceClient, id string) (r GetResult) {
-	_, r.Err = c.Get(resourceURL(c, id), &r.Body, nil)
+func GetPortForwarding(c *gophercloud.ServiceClient, id string, pfId string) (r GetResult) {
+	_, r.Err = c.Get(singlePortForwardingUrl(c, id, pfId), &r.Body, nil)
 	return
 }
 
@@ -307,7 +309,7 @@ func UpdatePortForwarding(c *gophercloud.ServiceClient, id string, opts UpdatePo
 // Delete will permanently delete a particular floating IP resource. Please
 // ensure this is what you want - you can also disassociate the IP from existing
 // internal ports.
-func DeletePortForwarding(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
-	_, r.Err = c.Delete(resourceURL(c, id), nil)
+func DeletePortForwarding(c *gophercloud.ServiceClient, id string, pfId string) (r DeleteResult) {
+	_, r.Err = c.Delete(singlePortForwardingUrl(c, id, pfId), nil)
 	return
 }
