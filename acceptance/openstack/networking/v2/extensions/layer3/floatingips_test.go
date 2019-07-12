@@ -219,7 +219,7 @@ func TestLayer3FloatingIPPortForwardingsCreateDelete(t *testing.T) {
 	th.AssertNoErr(t, err)
 	defer networking.DeleteSubnet(t, client, subnet.ID)
 
-	router, err := CreateExternalRouter(t, client)
+	router, err := CreateRouter(t, client, network.ID)
 	th.AssertNoErr(t, err)
 	defer DeleteRouter(t, client, router.ID)
 
@@ -262,5 +262,5 @@ func TestLayer3FloatingIPPortForwardingsCreateDelete(t *testing.T) {
 		}
 	}
 
-	th.AssertEquals(t, found, true)
+	th.AssertEquals(t, true, found)
 }
