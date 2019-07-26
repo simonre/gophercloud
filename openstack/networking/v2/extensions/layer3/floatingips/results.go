@@ -160,14 +160,14 @@ func (r commonResult) ExtractPortForwarding() (*PortForwarding, error) {
 	return &s, err
 }
 
-func (r commonResult) ExtractPortForwardingInto(v interface{}) error {
-	return r.Result.ExtractIntoStructPtr(v, "port_forwarding")
-}
-
 // FloatingIPPage is the page returned by a pager when traversing over a
 // collection of floating IPs.
 type PortForwardingPage struct {
 	pagination.LinkedPageBase
+}
+
+func (r commonResult) ExtractPortForwardingInto(v interface{}) error {
+	return r.Result.ExtractIntoStructPtr(v, "port_forwarding")
 }
 
 // NextPageURL is invoked when a paginated collection of floating IPs has
@@ -199,8 +199,4 @@ func ExtractPortForwardings(r pagination.Page) ([]PortForwarding, error) {
 	}
 	err := (r.(PortForwardingPage)).ExtractInto(&s)
 	return s.PortForwardings, err
-}
-
-func ExtractPortForwardingsInto(r pagination.Page, v interface{}) error {
-	return r.(PortForwardingPage).Result.ExtractIntoSlicePtr(v, "port_forwardings")
 }

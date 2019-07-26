@@ -64,14 +64,16 @@ func CreateFloatingIPWithFixedIP(t *testing.T, client *gophercloud.ServiceClient
 	return floatingIP, err
 }
 
-func CreatePortForwarding(t *testing.T, client *gophercloud.ServiceClient, fipID string, portID string) (*floatingips.PortForwarding, error) {
+func CreatePortForwarding(t *testing.T, client *gophercloud.ServiceClient, fipID string, portID string, portFixedIPs []ports.IP) (*floatingips.PortForwarding, error) {
 	t.Logf("Attempting to create Port forwarding for floating IP with ID: %s", fipID)
 
+	fixedIP := portFixedIPs[0]
+	internalIP := fixedIP.IPAddress
 	createOpts := &floatingips.CreatePortForwardingOpts{
 		Protocol:         "tcp",
 		InternalPort:     25,
 		ExternalPort:     2230,
-		InternalIPAdress: "10.0.0.11",
+		InternalIPAdress: internalIP,
 		InternalPortID:   portID,
 	}
 
@@ -110,10 +112,10 @@ func CreateExternalRouter(t *testing.T, client *gophercloud.ServiceClient) (*rou
 	t.Logf("Attempting to create external router: %s", routerName)
 
 	adminStateUp := true
-	enableSNAT := false
+	//enableSNAT := false
 	gatewayInfo := routers.GatewayInfo{
-		NetworkID:  choices.ExternalNetworkID,
-		EnableSNAT: &enableSNAT,
+		NetworkID: choices.ExternalNetworkID,
+		//EnableSNAT: &enableSNAT,
 	}
 
 	createOpts := routers.CreateOpts{
